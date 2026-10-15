@@ -213,6 +213,20 @@ pub(crate) enum CodexHooksFeature {
     ConfigError(String),
 }
 
+/// Derived state of Codex's shared app-server daemon, whose hooks carry a
+/// stale pane env and are therefore dropped by `notify codex` (issue #71).
+#[derive(Debug, PartialEq)]
+pub(crate) enum CodexDaemon {
+    /// Live now: every hook runs there, so Codex rows stay dark.
+    Running,
+    /// `[features].daemon_auto_start = false` and none running: hooks run
+    /// in each TUI with its own pane env.
+    AutoStartOff,
+    /// None running, auto-start not disabled: Codex 0.157+ starts one with
+    /// the next session.
+    NotRunning,
+}
+
 /// Derived state of the legacy `notify` slot in Codex `config.toml`.
 pub(crate) enum CodexNotifyState {
     ConfigAbsent,
@@ -228,6 +242,8 @@ pub(crate) struct CodexEnv {
     pub zj_radar_on_path: bool,
     pub config_text: Option<String>,
     pub hooks_text: Option<String>,
+    /// A Codex app-server daemon is live (`codex_daemon::daemon_running`).
+    pub daemon_running: bool,
 }
 
 /// Every derived fact about Codex setup state. The legacy-vs-hooks choice is a
@@ -239,6 +255,7 @@ pub(crate) struct CodexFacts {
     pub notify: CodexNotifyState,
     /// `None` = hooks.json absent; `Some(Ok(n))` = n marker-owned events; `Some(Err)` = parse error.
     pub owned_hook_events: Option<Result<usize, String>>,
+    pub daemon: CodexDaemon,
 }
 
 /// Pure: derive every Codex setup fact from already-read inputs. No I/O.
@@ -258,12 +275,20 @@ pub(crate) fn analyze_codex(env: &CodexEnv) -> CodexFacts {
         },
     };
     let owned_hook_events = env.hooks_text.as_deref().map(codex_owned_hook_event_count);
+    let daemon = if env.daemon_running {
+        CodexDaemon::Running
+    } else if env.config_text.as_deref().is_some_and(codex_daemon_auto_start_off) {
+        CodexDaemon::AutoStartOff
+    } else {
+        CodexDaemon::NotRunning
+    };
     CodexFacts {
         codex_on_path: env.codex_on_path,
         zj_radar_on_path: env.zj_radar_on_path,
         hooks_feature,
         notify,
         owned_hook_events,
+        daemon,
     }
 }
 
@@ -286,6 +311,18 @@ fn codex_hooks_disabled_in_config(existing: &str) -> Result<bool, String> {
         .and_then(Item::as_table_like)
         .and_then(|features| features.get("hooks").or_else(|| features.get("codex_hooks")).and_then(Item::as_bool))
         == Some(false))
+}
+
+/// `[features].daemon_auto_start = false`? Unparseable TOML reads as not set
+/// (the hooks-feature item already reports the parse error).
+fn codex_daemon_auto_start_off(existing: &str) -> bool {
+    existing.parse::<DocumentMut>().ok().is_some_and(|doc| {
+        doc.get("features")
+            .and_then(Item::as_table_like)
+            .and_then(|features| features.get("daemon_auto_start"))
+            .and_then(Item::as_bool)
+            == Some(false)
+    })
 }
 
 /// Raw, already-read environment for opencode setup. The only IO layer.
@@ -546,6 +583,7 @@ mod tests {
                 zj_radar_on_path: true,
                 config_text: cfg.map(str::to_string),
                 hooks_text: None,
+                daemon_running: false,
             })
         };
         assert!(matches!(mk(Some(ours)).notify, CodexNotifyState::Ours));
@@ -562,6 +600,7 @@ mod tests {
             zj_radar_on_path: true,
             config_text: Some(cfg_disabled.to_string()),
             hooks_text: None,
+            daemon_running: false,
         });
         assert!(matches!(f.hooks_feature, CodexHooksFeature::Disabled));
         assert!(f.owned_hook_events.is_none(), "no hooks.json -> None");

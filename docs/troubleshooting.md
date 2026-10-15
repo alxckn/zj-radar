@@ -61,6 +61,36 @@ nothing about the [producer](producers.md). In order:
    `ZJ_RADAR_NO_DEDUP=1`.
 5. **Zellij too old.** The floor is 0.44.3; `--check` flags it.
 
+## A Codex pane shows no status
+
+**Symptom:** Codex works in a pane, the hooks are installed and trusted, but
+its row never appears (or, with zj-radar 0.10 and older, Codex status shows up
+on the wrong pane).
+
+**Why:** since 0.157 Codex runs sessions on a shared background app-server
+daemon by default, and every session's hooks run inside that daemon with the
+environment it captured at startup: the `$ZELLIJ_PANE_ID` of whichever pane
+happened to start it. Nothing in the hook payload names the real pane, so
+`notify codex` ignores hooks that come from the daemon rather than paint the
+wrong row. Codex keeps hooks client-agnostic by design
+([openai/codex#48500](https://github.com/openai/codex/issues/48500)).
+
+**Fix:** run Codex without the daemon, either per launch or for good:
+
+```sh
+alias codex='codex --no-daemon'
+```
+
+```toml
+# $CODEX_HOME/config.toml (default ~/.codex)
+[features]
+daemon_auto_start = false
+```
+
+Then stop the running daemon with `codex app-server daemon stop`, since a TUI
+attaches to a live daemon whatever `daemon_auto_start` says.
+`zj-radar setup codex --check` reports the daemon's state.
+
 ## A pi pane shows no status
 
 **Symptom:** pi works in a pane, but its row never appears.

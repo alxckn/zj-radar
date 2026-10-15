@@ -30,6 +30,7 @@ use std::path::PathBuf;
 pub(crate) const WASM_FILE_NAME: &str = "zj_radar.wasm";
 
 mod agents;
+mod codex_daemon;
 mod dedup;
 mod fsutil;
 mod git;
