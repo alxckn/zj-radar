@@ -14,8 +14,8 @@ use crate::status::GlyphSet;
 /// rather than silently falling back.
 macro_rules! kinds {
     ( $( $variant:ident => $source:literal, $plain:literal, $nerd:literal );+ $(;)? ) => {
-        /// What kind of process owns a pane. Agents (Claude, Codex, Opencode, Pi,
-        /// Gemini) and task types (Test, Build, Deploy, Server) are peers — only
+        /// What kind of process owns a pane. Agents (Claude, Codex, Opencode, Pi, Omp,
+        /// Gemini) and task types (Test, Build, Deploy, Server, Remote) are peers — only
         /// the mark glyph differs; the renderer and sorter treat all variants
         /// identically.
         ///

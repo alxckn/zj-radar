@@ -60,6 +60,7 @@ classification, `Kind`, the bounded pipe argv; shared by producer and plugin),
 │ Codex       → native CLI via hooks.json         (running/pending/done)  │
 │ Opencode    → JS bridge → native CLI            (running/pending/done/error) │
 │ pi          → extension → native CLI            (running/pending/done/error) │
+│ omp         → extension → native CLI            (running/pending/done/error) │
 │ any script  → zj-radar notify generic                                   │
 └───────────────────────────┬─────────────────────────────────────────────┘
    zellij pipe --name zj_radar.status.v1 -- {v,source,pane,status,repo,branch,msg,task,ack,tasks}
@@ -181,8 +182,9 @@ on the name and keeps its own copy of the state.
 
 ```json
 { "v": 1,
-  "source": "claude",                 // Kind vocabulary: claude | codex | opencode | pi | gemini |
-                                      //   command | test | build | deploy | server | other
+  "source": "claude",                 // Kind vocabulary: claude | codex | opencode | pi | omp |
+                                      //   gemini | command | test | build | deploy |
+                                      //   server | remote | other
   "pane": { "type": "terminal", "id": 12 },
   "status": "running",                // running | pending | done | error | idle
   "repo": "pinky",
@@ -428,7 +430,7 @@ parser rejects a one-line `{ plugin location="radar" }` without a trailing `;`.
 
 **Two install surfaces, two answers.** Claude Code has a plugin system that
 bundles hooks, so a plugin is the right shape: one install command, clean
-uninstall, no user-file surgery. Codex, Opencode, and pi have hook or plugin
+uninstall, no user-file surgery. Codex, Opencode, pi, and omp have hook or plugin
 surfaces but no marketplace, so `zj-radar setup` edits their native config.
 The rules the installer keeps (`crates/cli/src/setup/`): strip-own-then-re-add
 keyed on a marker string, so re-runs are idempotent and `--uninstall` removes
@@ -736,7 +738,7 @@ functions in `crates/cli/src/setup/analyze.rs`, each fed a thin `Env` of
 already-read values by the IO shell. `Facts` is the single home for derived
 facts: alias present (managed vs unmanaged), rail injected, grant present,
 producer wired, Codex hooks/notify state, opencode plugin ownership, pi
-extension ownership. Both
+and omp extension ownership. Both
 consumers project from it: `*_check_items` renders `--check`, and the install
 orchestrators gate on it. The pure mutators (`edit_*` → `Outcome`) share only
 the low-level detectors in `setup/detect.rs`. The legacy-notify vs hooks

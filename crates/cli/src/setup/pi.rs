@@ -5,8 +5,8 @@
 
 use super::detect::pi_extension_is_ours;
 use super::vendored::{
-    dry_run_backup_line, kept_backup_line, plan_install, plan_uninstall, read_existing, remove_backup_if_ours,
-    write_bridge, Existing, InstallPlan, UninstallPlan,
+    dry_run_backup_line, kept_backup_line, plan_install, plan_uninstall, read_existing, refuse_if_managed,
+    remove_backup_if_ours, write_bridge, Existing, InstallPlan, UninstallPlan,
 };
 use super::*;
 
@@ -73,8 +73,7 @@ pub(crate) fn setup_pi(uninstall: bool, opts: BridgeSetupOpts) {
     if !uninstall
         && !pi_installed_from(which("pi"), override_set, agent_dir.is_dir(), !matches!(existing, Existing::Absent))
     {
-        println!("pi: skipped (binary/agent dir not found)");
-        return;
+        return report_skip("pi", "binary/agent dir not found", opts.explicit);
     }
     setup_extension_file(
         &ExtensionFile {
@@ -113,6 +112,7 @@ pub(super) fn setup_extension_file(ext: &ExtensionFile, existing: &Existing, uni
             UninstallPlan::NotOurs => {
                 println!("{label}: extension not ours (marker absent) — leaving {}", path.display())
             }
+            UninstallPlan::Remove if refuse_if_managed(label, path, true) => {}
             UninstallPlan::Remove if opts.dry_run => {
                 println!("--- would remove {} (dry-run) ---", path.display());
                 if let Some(line) = dry_run_backup_line(label, path, is_ours) {
@@ -121,8 +121,7 @@ pub(super) fn setup_extension_file(ext: &ExtensionFile, existing: &Existing, uni
             }
             UninstallPlan::Remove => {
                 if !confirm(&format!("Remove {}?", path.display()), opts.yes, opts.is_tty) {
-                    println!("{label}: skipped (declined)");
-                    return;
+                    return report_declined(label, opts.is_tty, opts.explicit);
                 }
                 if let Err(e) = std::fs::remove_file(path) {
                     crate::exit::fail_report(label, format!("remove failed — {e}"));
@@ -151,14 +150,14 @@ pub(super) fn setup_extension_file(ext: &ExtensionFile, existing: &Existing, uni
             println!("{label}: extension already up to date ({})", path.display());
             print_extension_guidance(label, restart_hint, false);
         }
+        InstallPlan::Write if refuse_if_managed(label, path, false) => {}
         InstallPlan::Write if opts.dry_run => {
             println!("--- {} (dry-run) ---\n{}", path.display(), js);
             print_extension_guidance(label, restart_hint, true);
         }
         InstallPlan::Write => {
             if !confirm(&format!("Write {}?", path.display()), opts.yes, opts.is_tty) {
-                println!("{label}: skipped (declined)");
-                return;
+                return report_declined(label, opts.is_tty, opts.explicit);
             }
             if let Err(e) = write_bridge(path, js, existing, is_ours) {
                 crate::exit::fail_report(label, format!("write failed — {e}"));

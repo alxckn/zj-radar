@@ -8,7 +8,7 @@
 //! keyed off the payload's `event` field — the pending backstop, the running
 //! baseline, tool-activity substitution, the sticky task capture, and the
 //! trailing-question Done→Pending remap — are `agents::derive_bridged`'s,
-//! shared with opencode. This module supplies pi's event names and its
+//! shared with opencode and omp. This module supplies pi's event names and its
 //! lowercase tool names and `path` arg for the shared `tool_activity`
 //! vocabulary. The event names are zj-radar's, not pi's, so a pi API change
 //! lands in JS only.

@@ -104,8 +104,7 @@ pub(crate) fn setup_omp(uninstall: bool, opts: BridgeSetupOpts) {
     };
     let existing = read_existing(&path);
     if !uninstall && !omp_installed_from(which("omp"), agent_dir.is_dir(), !matches!(existing, Existing::Absent)) {
-        println!("omp: skipped (binary/agent dir not found)");
-        return;
+        return report_skip("omp", "binary/agent dir not found", opts.explicit);
     }
     setup_extension_file(
         &ExtensionFile {

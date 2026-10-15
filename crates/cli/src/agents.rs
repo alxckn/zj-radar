@@ -177,8 +177,8 @@ pub fn trailing_question(msg: &str) -> Option<&str> {
     (line.ends_with('?') || line.ends_with('？')).then_some(line)
 }
 
-/// The msg baseline every producer shares (the Claude adapter, the opencode
-/// and pi bridges via [`derive_bridged`], and `notify generic`; codex builds
+/// The msg baseline every producer shares (the Claude adapter, the opencode,
+/// pi, and omp bridges via [`derive_bridged`], and `notify generic`; codex builds
 /// per-event and never needs it; the bash fallback mirrors it in notify.sh):
 /// idle always broadcasts a BLANK msg — it means
 /// "no activity", so any stale message the payload rides in on (e.g. a
@@ -195,10 +195,10 @@ pub fn baseline_msg(status: Status, msg: &str) -> String {
     }
 }
 
-/// The per-agent half of a JS-bridge producer (opencode, pi). The bridge
+/// The per-agent half of a JS-bridge producer (opencode, pi, omp). The bridge
 /// translates the agent's events into zj-radar's own `event` vocabulary and
 /// spawns `notify <agent> --status <s>` with JSON on stdin, so an agent API
-/// change lands in JS only; [`derive_bridged`] owns every refinement the two
+/// change lands in JS only; [`derive_bridged`] owns every refinement the bridges
 /// share. Only the event names and tool vocabularies differ.
 pub(crate) struct Bridge {
     /// `event` → status, used when `--status` is absent (the bridges always

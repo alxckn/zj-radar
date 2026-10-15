@@ -14,7 +14,8 @@ use super::{AgentUpdate, Bridge, Intake};
 /// omp's half of the shared bridge derivation. Tool names are omp's
 /// built-ins (`packages/coding-agent/src/tools`, `edit/`, `task/`, all
 /// lowercase); the file arg is `path`, as in pi. `ast_grep` is a structural
-/// search; extension and MCP-less custom tools fall to the `working` baseline.
+/// search; any other tool (extension, MCP, or custom) falls to the `working`
+/// baseline.
 const BRIDGE: Bridge = Bridge {
     status_from_event: super::pi::status_from_event,
     tool_event: "tool",

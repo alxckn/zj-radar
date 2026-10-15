@@ -1,13 +1,19 @@
 # Producers: sending agent status to the sidebar
 
 The sidebar only displays. A **producer** is whatever broadcasts agent status
-to it. zj-radar ships producers for Claude Code, Codex, Opencode, and pi, a
-`notify generic` command for any script, and documents the wire format so you
-can write your own.
+to it. zj-radar ships producers for Claude Code, Codex, Opencode, pi, and omp
+(oh-my-pi), a `notify generic` command for any script, and documents the wire
+format so you can write your own.
 
 Install the [sidebar](install.md) first. Every producer below needs the
 `zj-radar` CLI on `PATH` except the Claude plugin, which falls back to a
 bundled `bash`+`jq` script when the binary is absent.
+
+`zj-radar setup <agent>` wires the agents you name; a named agent that is not
+found, or a write with no terminal to confirm it (pass `-y`), exits non-zero
+with the reason. Bare `zj-radar setup` wires every agent it finds, skips the
+rest, and points you at `zj-radar setup zellij --download` if the sidebar is
+not installed yet.
 
 ## Claude Code
 
@@ -412,7 +418,7 @@ session that lost its writer may briefly read as stale but is never reaped.
 go-to-tab` is 1-based, so jump with `go-to-tab $((pos + 1))`. A pane's
 `status` is one of `running`, `pending`, `done`, `error`, `idle` (see
 [the activity model](activity-model.md)); `kind` is an agent (`claude`,
-`codex`, `opencode`, `pi`, `gemini`) or a command class (`test`, `build`,
+`codex`, `opencode`, `pi`, `omp`, `gemini`) or a command class (`test`, `build`,
 `deploy`, `server`, `remote`, `command`, `other`), the `Kind` axis in
 [the activity model](activity-model.md#2-the-three-orthogonal-axes).
 

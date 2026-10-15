@@ -1041,7 +1041,7 @@ tab <pos> "<name>" [active]
   ...
 ```
 
-- `kind` ∈ claude·codex·opencode·pi·gemini·command·build·test·deploy·server·remote·other
+- `kind` ∈ claude·codex·opencode·pi·omp·gemini·command·build·test·deploy·server·remote·other
 - `status` ∈ running·pending·done·error·idle
 - `waiting <N>m` backdates the pane's waiting-on-you edge by N minutes so the
   `· Nm` wait tag renders (pending panes only; without it the pane applied
