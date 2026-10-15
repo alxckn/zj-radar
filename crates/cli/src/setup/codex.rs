@@ -91,6 +91,7 @@ fn setup_codex_hooks(uninstall: bool, dry_run: bool, yes: bool, is_tty: bool) {
         zj_radar_on_path: which("zj-radar"),
         config_text: codex_config_path().and_then(|p| std::fs::read_to_string(p).ok()),
         hooks_text: Some(existing.clone()),
+        daemon_running: false,
     };
     let facts = analyze_codex(&env);
     let Some(outcome) = edit_or_report("codex", edit_codex_hooks(&existing, !uninstall)) else {

@@ -72,6 +72,15 @@ pub(crate) const ZELLIJ_ALIAS_END: &str = "// zj-radar: managed plugin alias end
 // and the doctor's note item, so the advice can't drift between them. No
 // trailing punctuation — callers supply their own.
 pub(crate) const CODEX_HOOK_TRUST_ADVICE: &str = "run `/hooks` in Codex to review and trust the zj-radar command hook";
+/// Codex 0.157+ runs hooks in a shared daemon whose pane env is stale, and
+/// `notify codex` drops them (`codex_daemon`, issue #71).
+pub(crate) const CODEX_DAEMON_ADVICE: &str = "Codex 0.157+ starts a shared app-server daemon whose hooks can't \
+     tell panes apart, so zj-radar ignores them; launch codex with `--no-daemon`, or set \
+     `[features] daemon_auto_start = false` in config.toml";
+pub(crate) const CODEX_DAEMON_RUNNING_ADVICE: &str = "a shared Codex app-server daemon is running: its hooks carry \
+     the env of the pane that started it, so zj-radar ignores them and Codex rows stay dark; launch codex with \
+     `--no-daemon`, or set `[features] daemon_auto_start = false` in config.toml and run \
+     `codex app-server daemon stop`";
 
 /// The ownership marker family stamped into every vendored opencode bridge
 /// file's header (`// ZJ_RADAR_OPENCODE_PLUGIN=<version>`). One shared source

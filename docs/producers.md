@@ -76,6 +76,13 @@ Each entry carries `timeout: 10` (the send deadline plus headroom, see
 [Bound your sends](#bound-your-sends)) and the `ZJ_RADAR_CODEX_HOOK=v1` marker
 that idempotency and `--uninstall` key on.
 
+Codex 0.157+ runs sessions on a shared app-server daemon by default, and the
+daemon runs every session's hooks with the pane environment of whichever pane
+started it. `notify codex` ignores hooks whose parent is `codex app-server`,
+so launch Codex with `--no-daemon` (or set `[features] daemon_auto_start =
+false`) for its rows to appear; see
+[troubleshooting](troubleshooting.md#a-codex-pane-shows-no-status).
+
 `zj-radar setup codex --legacy-notify` uses Codex's older single-slot `notify`
 program instead of hooks. It only reports `done`, and it refuses to replace a
 foreign notifier unless you also pass `--force`.
