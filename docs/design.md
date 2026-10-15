@@ -413,6 +413,18 @@ parser rejects a one-line `{ plugin location="radar" }` without a trailing `;`.
   `AGENT_NAMES`) is what recognizes a globally-installed `pi` (`node
   .../bin/pi`) — or an npm-installed Codex (`node .../codex.js`) — as the
   agent rather than an anonymous `node` command.
+- **omp**: `zj-radar setup omp` vendors a sibling of the pi bridge to omp's
+  user extensions directory (`~/.omp/agent/extensions/zj-radar-omp.js`,
+  resolved like omp's own profile / `$PI_CONFIG_DIR` / `$PI_CODING_AGENT_DIR`
+  rules). It speaks the pi bridge's wire vocabulary (`agents/omp.rs` reuses
+  pi's event table), translating omp's different event surface: `agent_end`
+  without `willContinue` is the settle, the `ask` tool and `tool_approval_*`
+  become `ui_prompt.*`, and `session_switch{new}` is the reset. omp rebinds
+  every extension into each subagent session (`ctx.agent.kind === "sub"`), so
+  the bridge forwards only the main session's lifecycle plus any session's
+  blocking dialogs; its queue lives on `globalThis` because module globals are
+  shared across those bindings. The `ZJ_RADAR_OMP_EXTENSION=<v>` marker is
+  what idempotency, `--uninstall`, and `--check` key on.
 
 **Two install surfaces, two answers.** Claude Code has a plugin system that
 bundles hooks, so a plugin is the right shape: one install command, clean

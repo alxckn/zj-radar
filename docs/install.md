@@ -231,8 +231,8 @@ Items are `ok`, `warn`, or `missing`:
 - **wasm**: file present at the stable path.
 - **layout**: the default layout contains the rail.
 - **grant**: `permissions.kdl` grants the wasm path.
-- **producer**: which of the Claude plugin, Codex hooks, Opencode bridge, and
-  pi extension are wired. The Claude plugin is found under
+- **producer**: which of the Claude plugin, Codex hooks, Opencode bridge, pi
+  extension, and omp extension are wired. The Claude plugin is found under
   `$CLAUDE_CONFIG_DIR` (default `~/.claude`).
 - **managed config** (only when `config.kdl` is a symlink, as under
   home-manager): direct edits may be overwritten.
@@ -243,7 +243,7 @@ Items are `ok`, `warn`, or `missing`:
 `zj-radar setup --check` checks the sidebar plus every agent it detects, so an
 agent you don't use never fails it. An agent binary missing from `PATH` while
 zj-radar is wired for it (the Claude plugin installed; our Codex hooks or
-notify slot; our opencode or pi bridge) is a `warn`, not a `missing`.
+notify slot; our opencode, pi, or omp bridge) is a `warn`, not a `missing`.
 
 ## Upgrade (`zj-radar update`)
 
@@ -262,7 +262,7 @@ zj-radar update --check    # report only; exit 1 when an update is available
    `~/.config/zellij/plugins/zj_radar.wasm` comes from the same release. The
    file is rewritten only when its bytes differ.
 3. Runs `setup` for the producers already wired (Codex hooks, Opencode
-   bridge, pi extension), never for one you have not set up. The Claude Code
+   bridge, pi and omp extensions), never for one you have not set up. The Claude Code
    plugin updates from inside Claude: `/plugin update zj-radar-claude@zj-radar`.
 4. Runs the doctor (`setup --check`).
 
@@ -362,6 +362,7 @@ config-dir entries with them.
 | `$CODEX_HOME/hooks.json` entries (+ optional `notify` slot in `config.toml`) | `setup codex` | **reversed** by `setup codex --uninstall` |
 | `zj-radar-claude` plugin + `zj-radar` marketplace entry in Claude Code's plugin store | `setup claude` | plugin **reversed** by `setup claude --uninstall`; marketplace entry stays: `claude plugin marketplace remove zj-radar` |
 | `plugins/zj-radar.js` (1.x) and `plugins/zj-radar/tui.js` (2.x) under `$XDG_CONFIG_HOME/opencode/` (or `~/.config/opencode/`) | `setup opencode` | **reversed** by `setup opencode --uninstall` (each only when the marker is present), along with its `.zj-radar.bak` when that backup is ours (a backup of the foreign file `--force` replaced is left for you, with the `mv` that restores it; `--dry-run` names which) and the emptied `zj-radar/` dir |
+| `~/.omp/agent/extensions/zj-radar-omp.js` (or the active omp profile's / `$PI_CODING_AGENT_DIR`'s `extensions/`) | `setup omp` | **reversed** by `setup omp --uninstall` (only when the marker is present), with the same backup handling as `setup pi` |
 | `~/.pi/agent/extensions/zj-radar.js` (or `$PI_CODING_AGENT_DIR/extensions/zj-radar.js`) | `setup pi` | **reversed** by `setup pi --uninstall` (only when the marker is present), along with its `.zj-radar.bak` when that backup is ours (a backup of the foreign file `--force` replaced is left for you, with the `mv` that restores it; `--dry-run` names which) |
 
 Complete removal:
@@ -372,6 +373,7 @@ zj-radar setup claude --uninstall -y && claude plugin marketplace remove zj-rada
 zj-radar setup codex --uninstall -y
 zj-radar setup opencode --uninstall -y
 zj-radar setup pi --uninstall -y
+zj-radar setup omp --uninstall -y
 ```
 
 then delete the wasm, the `run` data dir, the grant block, and the binary.

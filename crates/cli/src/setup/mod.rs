@@ -1,10 +1,11 @@
-//! `zj-radar setup [claude|codex|opencode|pi|zellij]` — idempotent,
+//! `zj-radar setup [claude|codex|opencode|pi|omp|zellij]` — idempotent,
 //! conflict-aware local wiring. Claude is wired through Claude Code's own
 //! plugin marketplace (we drive the `claude plugin` CLI, never its files);
 //! Codex gets hooks.json entries; Opencode gets vendored JS bridge plugins
 //! dropped into its auto-loaded global plugins dir (no `opencode.json` edit:
 //! a 1.x server plugin file plus a 2.x TUI plugin directory); pi gets a
-//! vendored JS bridge extension in its auto-loaded extensions dir;
+//! vendored JS bridge extension in its auto-loaded extensions dir, and so
+//! does omp (oh-my-pi, a pi fork);
 //! Zellij setup installs the wasm at a stable path and manages the `radar`
 //! alias in `config.kdl`.
 
@@ -15,6 +16,7 @@ mod codex;
 pub(crate) mod detect;
 mod download;
 mod edit;
+mod omp;
 mod opencode;
 mod pi;
 mod preseed;
@@ -26,6 +28,7 @@ pub(crate) use claude::*;
 pub(crate) use codex::*;
 pub(crate) use download::*;
 pub(crate) use edit::*;
+pub(crate) use omp::*;
 pub(crate) use opencode::*;
 pub(crate) use pi::*;
 pub(crate) use zellij::*;
@@ -115,6 +118,17 @@ pub(crate) const PI_EXTENSION_FILE_NAME: &str = "zj-radar.js";
 /// The vendored pi bridge extension (see `flake.nix`'s filter for the
 /// hermetic build's copy of this non-Rust `include_str!` input).
 pub(crate) const PI_EXTENSION_JS: &str = include_str!("pi_extension.js");
+
+/// The ownership marker stamped into the vendored omp bridge's header line
+/// (`// ZJ_RADAR_OMP_EXTENSION=<version>`) — pi's scheme, its own prefix.
+pub(crate) const OMP_EXTENSION_MARKER_PREFIX: &str = "ZJ_RADAR_OMP_EXTENSION=";
+#[cfg(test)]
+pub(crate) const OMP_EXTENSION_MARKER: &str = "ZJ_RADAR_OMP_EXTENSION=v1";
+/// The file omp auto-loads from its user extensions dir. Distinct from pi's
+/// name: the two agents can share one extensions dir (`omp.rs`).
+pub(crate) const OMP_EXTENSION_FILE_NAME: &str = "zj-radar-omp.js";
+/// The vendored omp bridge extension (see `flake.nix`'s filter).
+pub(crate) const OMP_EXTENSION_JS: &str = include_str!("omp_extension.js");
 
 pub struct SetupOptions<'a> {
     pub targets: &'a [String],
@@ -236,12 +250,16 @@ pub fn run(options: SetupOptions<'_>) {
     let want_opencode = bare || options.targets.iter().any(|a| a == "opencode");
     let want_claude = bare || options.targets.iter().any(|a| a == "claude");
     let want_pi = bare || options.targets.iter().any(|a| a == "pi");
+    let want_omp = bare || options.targets.iter().any(|a| a == "omp");
     let want_zellij = options.targets.iter().any(|a| a == "zellij") || options.wasm.is_some() || options.download;
-    for a in options.targets.iter().filter(|a| !matches!(a.as_str(), "claude" | "codex" | "opencode" | "pi" | "zellij"))
+    for a in options
+        .targets
+        .iter()
+        .filter(|a| !matches!(a.as_str(), "claude" | "codex" | "opencode" | "pi" | "omp" | "zellij"))
     {
         crate::exit::fail_report(
             "zj-radar",
-            format!("setup does not support '{a}' (supported: claude, codex, opencode, pi, zellij). Skipping."),
+            format!("setup does not support '{a}' (supported: claude, codex, opencode, pi, omp, zellij). Skipping."),
         );
     }
     // Cross-target flag hygiene: `--wasm`/`--download` *imply* the zellij
@@ -289,6 +307,9 @@ pub fn run(options: SetupOptions<'_>) {
         }
         if explicit("pi") || (both && (which("pi") || pi_extension_is_ours_on_disk())) {
             missing |= check_pi();
+        }
+        if explicit("omp") || (both && (which("omp") || omp_extension_is_ours_on_disk())) {
+            missing |= check_omp();
         }
         if missing {
             // The items above are the diagnostic; this sets the exit code so
@@ -354,6 +375,12 @@ pub fn run(options: SetupOptions<'_>) {
     }
     if want_pi {
         setup_pi(
+            uninstall,
+            BridgeSetupOpts { force: options.force, dry_run: options.dry_run, yes: options.yes, is_tty },
+        );
+    }
+    if want_omp {
+        setup_omp(
             uninstall,
             BridgeSetupOpts { force: options.force, dry_run: options.dry_run, yes: options.yes, is_tty },
         );

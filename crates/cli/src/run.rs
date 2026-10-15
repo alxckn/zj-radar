@@ -1192,6 +1192,7 @@ mod tests {
                 opencode_plugin: opencode.then(|| format!("// {OPENCODE_PLUGIN_MARKER}\n")),
                 opencode_tui_plugin: None,
                 pi_extension: None,
+                omp_extension: None,
             },
         }
     }

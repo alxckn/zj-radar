@@ -53,6 +53,7 @@ fn is_agent_command_detects_a_live_agent() {
     assert!(is_agent_command(&argv(&["codex"])));
     assert!(is_agent_command(&argv(&["opencode"])));
     assert!(is_agent_command(&argv(&["pi"])));
+    assert!(is_agent_command(&argv(&["omp"])));
     // Env/wrapper prefixes are peeled, mirroring is_shell_prompt.
     assert!(is_agent_command(&argv(&["env", "FOO=1", "claude"])));
     // Shells, ordinary commands, and nothing don't vouch.
@@ -720,7 +721,7 @@ fn agent_foreground_commands_are_not_tracked() {
     // The set of suppressed agents is exactly the push adapters (see the
     // `agent_names_match_push_adapter_sources` guard); Gemini is NOT one —
     // see `gemini_foreground_command_is_tracked`.
-    for agent in &["claude", "codex", "opencode", "pi"] {
+    for agent in &["claude", "codex", "opencode", "pi", "omp"] {
         let mut store = CommandStore::default();
         store.on_command_changed(1, &[agent.to_string()], true, Some("/work/repo"), 1);
         assert!(!store.pending.contains_key(&1), "{agent} must not enter pending");

@@ -5,7 +5,7 @@
 //!   agent's hook payload and broadcasts a `zj_radar.status.v1` update. Each
 //!   agent is a peer adapter behind the [`agents::Agent::derive`] seam, so
 //!   `notify` stays agent-agnostic.
-//! - `setup [claude|codex|opencode|pi|zellij]` ([`setup`]) — idempotent
+//! - `setup [claude|codex|opencode|pi|omp|zellij]` ([`setup`]) — idempotent
 //!   wiring: manage Codex notify/`hooks.json`, drop the opencode JS bridge
 //!   plugin and the pi bridge extension into their auto-loaded dirs, install
 //!   the wasm plugin, and inject the rail into a Zellij layout ([`layout`]).
@@ -84,7 +84,7 @@ struct Cli {
 enum Command {
     /// Broadcast one agent's status to the sidebar (called from an agent hook).
     Notify {
-        /// Which agent is reporting: `claude`, `codex`, `opencode`, `pi`, or
+        /// Which agent is reporting: `claude`, `codex`, `opencode`, `pi`, `omp`, or
         /// `generic` (any script — pass explicit `--status`/`--msg`/`--task`
         /// flags, no hook payload needed).
         agent: String,
@@ -119,7 +119,7 @@ enum Command {
     },
     /// Idempotently wire installed agents and Zellij to use zj-radar.
     Setup {
-        /// Targets to set up (default: detected agents only). Supported: claude, codex, opencode, pi, zellij.
+        /// Targets to set up (default: detected agents only). Supported: claude, codex, opencode, pi, omp, zellij.
         targets: Vec<String>,
         /// Wasm artifact to install when setting up Zellij.
         #[arg(long, value_name = "PATH")]

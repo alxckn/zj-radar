@@ -262,7 +262,7 @@ fn send_with(payload: &str, timeout: std::time::Duration, path: Option<&std::ffi
 /// `RUNNING_PIPE_TIMEOUT_SECS`, while the once-per-turn edges keep the full
 /// `DEFAULT_PIPE_TIMEOUT_SECS` — dropping an edge loses real state. Keying
 /// the default here (instead of per-entry env prefixes in hooks.json) gives
-/// every producer — claude, codex, opencode, pi, generic — the policy from one seam.
+/// every producer — claude, codex, opencode, pi, omp, generic — the policy from one seam.
 /// Clamped to an hour so `timeout + 1 s` (the send's backstop) cannot
 /// overflow `Duration` — this module promises the calling hook never sees
 /// a panic.

@@ -19,8 +19,8 @@ use crate::status::Status;
 /// Map a bridge event to a status, used when `--status` is absent (the bridge
 /// always passes it; this is the robustness/test path). `ui_prompt.end` has
 /// no fixed status — the bridge resolves it from pi's idle state — so it is
-/// `None` here.
-fn status_from_event(event: &str) -> Option<Status> {
+/// `None` here. The omp bridge speaks the same event vocabulary and shares it.
+pub(super) fn status_from_event(event: &str) -> Option<Status> {
     match event {
         "prompt" | "tool" => Some(Status::Running),
         "ui_prompt.start" => Some(Status::Pending),
