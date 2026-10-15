@@ -303,6 +303,12 @@ session. `zj-radar update --check` confirms the installed wasm matches the
 release. If it reports the wasm as a symlink managed by Nix or home-manager,
 `update` left it alone; update the flake input instead.
 
+## Codex panes go dark after `zj-radar update`
+
+When an update rewrites the Codex hooks, Codex treats them as new and skips
+them until you trust them again. Run `/hooks` inside Codex and trust the
+zj-radar command hook; the rows light up on the next turn.
+
 ## Zellij plugin-reload quirks
 
 **Symptom:** during development, reloading the plugin opens an extra tiled

@@ -264,6 +264,8 @@ zj-radar update --check    # report only; exit 1 when an update is available
 3. Runs `setup` for the producers already wired (Codex hooks, Opencode
    bridge, pi and omp extensions), never for one you have not set up. The Claude Code
    plugin updates from inside Claude: `/plugin update zj-radar-claude@zj-radar`.
+   If this rewrote the Codex hooks, run `/hooks` in Codex and trust them
+   again; until then Codex skips them and its rows stay dark.
 4. Runs the doctor (`setup --check`).
 
 Restart Zellij, or open a new session, to load the new sidebar. A running
