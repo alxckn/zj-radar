@@ -73,8 +73,7 @@ pub(crate) fn setup_pi(uninstall: bool, opts: BridgeSetupOpts) {
     if !uninstall
         && !pi_installed_from(which("pi"), override_set, agent_dir.is_dir(), !matches!(existing, Existing::Absent))
     {
-        println!("pi: skipped (binary/agent dir not found)");
-        return;
+        return report_skip("pi", "binary/agent dir not found", opts.explicit);
     }
     setup_extension_file(
         &ExtensionFile {
@@ -121,8 +120,7 @@ pub(super) fn setup_extension_file(ext: &ExtensionFile, existing: &Existing, uni
             }
             UninstallPlan::Remove => {
                 if !confirm(&format!("Remove {}?", path.display()), opts.yes, opts.is_tty) {
-                    println!("{label}: skipped (declined)");
-                    return;
+                    return report_declined(label, opts.is_tty, opts.explicit);
                 }
                 if let Err(e) = std::fs::remove_file(path) {
                     crate::exit::fail_report(label, format!("remove failed — {e}"));
@@ -157,8 +155,7 @@ pub(super) fn setup_extension_file(ext: &ExtensionFile, existing: &Existing, uni
         }
         InstallPlan::Write => {
             if !confirm(&format!("Write {}?", path.display()), opts.yes, opts.is_tty) {
-                println!("{label}: skipped (declined)");
-                return;
+                return report_declined(label, opts.is_tty, opts.explicit);
             }
             if let Err(e) = write_bridge(path, js, existing, is_ours) {
                 crate::exit::fail_report(label, format!("write failed — {e}"));

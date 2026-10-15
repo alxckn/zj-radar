@@ -159,12 +159,27 @@ pub(crate) fn zellij_version_is_supported(version_output: &str) -> bool {
 }
 
 /// Pure: derive every Zellij setup fact from already-read inputs. No I/O.
+/// `(managed, unmanaged)`: is our marked alias block in `config.kdl`, and is
+/// a `radar` alias of the user's own there outside it?
+fn alias_presence(lines: &[String]) -> (bool, bool) {
+    let managed = lines.iter().any(|l| l.trim() == ZELLIJ_ALIAS_BEGIN);
+    let mut lines_without_managed = lines.to_vec();
+    strip_managed_zellij_alias(&mut lines_without_managed);
+    (managed, has_unmanaged_radar_alias(&lines_without_managed))
+}
+
+/// Does `config.kdl` carry any `radar` alias, ours or the user's? The alias
+/// half of [`analyze_zellij`], for a caller that needs only "has the sidebar
+/// been set up at all" and not the doctor's full (spawning) read.
+pub(crate) fn radar_alias_present(config_text: Option<&str>) -> bool {
+    let lines: Vec<String> = config_text.map(split_lines).unwrap_or_default();
+    let (managed, unmanaged) = alias_presence(&lines);
+    managed || unmanaged
+}
+
 pub(crate) fn analyze_zellij(env: &ZellijEnv) -> ZellijFacts {
     let lines: Vec<String> = env.config_text.as_deref().map(split_lines).unwrap_or_default();
-    let managed_alias_present = lines.iter().any(|l| l.trim() == ZELLIJ_ALIAS_BEGIN);
-    let mut lines_without_managed = lines.clone();
-    strip_managed_zellij_alias(&mut lines_without_managed);
-    let unmanaged_alias_present = has_unmanaged_radar_alias(&lines_without_managed);
+    let (managed_alias_present, unmanaged_alias_present) = alias_presence(&lines);
     // Scoped to radar alias lines inside a plugins block: other plugins
     // legitimately live in the store (e.g. `room location="file:/nix/store/…"`)
     // and must not trip the radar grant-persistence warning — nor should a

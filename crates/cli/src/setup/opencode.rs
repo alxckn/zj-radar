@@ -124,8 +124,7 @@ pub(crate) fn setup_opencode(uninstall: bool, opts: BridgeSetupOpts) {
     let Some(bridges) = bridges() else { return };
     let opencode_on_path = which("opencode");
     if !uninstall && !opencode_installed(opencode_on_path) {
-        println!("opencode: skipped (binary/config not found)");
-        return;
+        return report_skip("opencode", "binary/config not found", opts.explicit);
     }
     let env = OpencodeEnv {
         opencode_on_path,
@@ -174,8 +173,7 @@ pub(crate) fn setup_opencode(uninstall: bool, opts: BridgeSetupOpts) {
     // unasked.
     let prompt = format!("Write {}?", paths_list(to_write.iter().map(|b| b.path.clone())));
     if !confirm(&prompt, opts.yes, opts.is_tty) {
-        println!("opencode: skipped (declined)");
-        return;
+        return report_declined("opencode", opts.is_tty, opts.explicit);
     }
     for b in &to_write {
         if let Err(e) = write_bridge(&b.path, b.embedded, &b.existing, opencode_plugin_is_ours) {
@@ -216,8 +214,7 @@ fn uninstall_opencode(bridges: &[Bridge], opts: &BridgeSetupOpts) {
     // Same consent step as every other setup write/remove: a non-tty run
     // without -y skips rather than deleting unasked.
     if !confirm(&format!("Remove {listed}?"), opts.yes, opts.is_tty) {
-        println!("opencode: skipped (declined)");
-        return;
+        return report_declined("opencode", opts.is_tty, opts.explicit);
     }
     for b in &to_remove {
         if let Err(e) = std::fs::remove_file(&b.path) {

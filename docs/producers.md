@@ -2,12 +2,18 @@
 
 The sidebar only displays. A **producer** is whatever broadcasts agent status
 to it. zj-radar ships producers for Claude Code, Codex, Opencode, pi, and omp
-(oh-my-pi), a `notify generic` command for any script, and documents the wire format so you
-can write your own.
+(oh-my-pi), a `notify generic` command for any script, and documents the wire
+format so you can write your own.
 
 Install the [sidebar](install.md) first. Every producer below needs the
 `zj-radar` CLI on `PATH` except the Claude plugin, which falls back to a
 bundled `bash`+`jq` script when the binary is absent.
+
+`zj-radar setup <agent>` wires the agents you name; a named agent that is not
+found, or a write with no terminal to confirm it (pass `-y`), exits non-zero
+with the reason. Bare `zj-radar setup` wires every agent it finds, skips the
+rest, and points you at `zj-radar setup zellij --download` if the sidebar is
+not installed yet.
 
 ## Claude Code
 

@@ -1592,7 +1592,7 @@ fn claude_check_passes_a_path_less_claude_whose_plugin_is_installed() {
 }
 
 #[test]
-fn setup_claude_skips_when_binary_missing() {
+fn setup_claude_fails_when_named_and_binary_missing() {
     let empty_path = TempDir::new().unwrap();
     let home = claude_home(false);
     let output = Command::cargo_bin("zj-radar")
@@ -1601,13 +1601,13 @@ fn setup_claude_skips_when_binary_missing() {
         .env("PATH", empty_path.path())
         .env("HOME", home.path())
         .assert()
-        .success()
+        .failure()
         .get_output()
         .clone();
-    let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
+    let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
     assert!(
-        stdout.contains("claude: skipped"),
-        "a claude-less machine skips gracefully, like codex; stdout:\n{stdout}"
+        stderr.contains("claude: skipped (binary not found)"),
+        "a named target that wires nothing fails with the reason; stderr:\n{stderr}"
     );
 }
 
@@ -1651,13 +1651,15 @@ fn setup_claude_without_consent_runs_nothing() {
         .env("HOME", home.path())
         .write_stdin("")
         .assert()
-        .success()
+        .failure()
         .get_output()
         .clone();
     let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
+    let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
     assert!(claude_args(&shim).is_empty(), "unconfirmed consent must not invoke the plugin CLI");
     assert!(stdout.contains("no tty"), "the skip must say how to consent non-interactively; stdout:\n{stdout}");
-    assert!(stdout.contains("skipped (declined)"), "stdout:\n{stdout}");
+    // Nobody was asked, so the named target is undone: a failure, not a decline.
+    assert!(stderr.contains("claude: skipped (no tty to confirm — re-run with -y)"), "stderr:\n{stderr}");
 }
 
 // ── Review fixes: cross-version uninstall, grant recovery path, dry-run copy ──
@@ -1924,11 +1926,12 @@ fn setup_opencode_uninstall_without_consent_leaves_the_bridge() {
     let (xdg, plugin) = isolated_opencode_xdg();
     opencode_cmd(&xdg, &["--yes"]).success();
 
-    // Non-tty, no -y: same skip as every other setup write/remove.
-    let out = opencode_cmd(&xdg, &["--uninstall"]).success().get_output().clone();
+    // Non-tty, no -y: same skip as every other setup write/remove — and a
+    // named target left undone fails, so a script can't read it as success.
+    let out = opencode_cmd(&xdg, &["--uninstall"]).failure().get_output().clone();
     assert!(plugin.exists(), "declined uninstall must not delete");
-    let stdout = String::from_utf8_lossy(&out.stdout);
-    assert!(stdout.contains("skipped"), "stdout:\n{stdout}");
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(stderr.contains("opencode: skipped (no tty to confirm — re-run with -y)"), "stderr:\n{stderr}");
 }
 
 #[test]
@@ -2037,10 +2040,10 @@ fn setup_pi_honors_an_explicit_override_before_its_dir_exists() {
 }
 
 #[test]
-fn setup_pi_skips_when_pi_is_absent() {
+fn setup_pi_fails_when_named_and_pi_is_absent() {
     let home = TempDir::new().unwrap(); // no ~/.pi/agent, no pi on PATH
-    let out = pi_cmd(&home, &["--yes"]).success().get_output().clone();
-    assert!(String::from_utf8_lossy(&out.stdout).contains("pi: skipped"));
+    let out = pi_cmd(&home, &["--yes"]).failure().get_output().clone();
+    assert!(String::from_utf8_lossy(&out.stderr).contains("pi: skipped (binary/agent dir not found)"));
     assert!(!home.path().join(".pi").exists());
 }
 
@@ -2370,10 +2373,10 @@ fn setup_omp_and_pi_coexist_in_a_shared_agent_dir() {
 }
 
 #[test]
-fn setup_omp_skips_when_omp_is_absent() {
+fn setup_omp_fails_when_named_and_omp_is_absent() {
     let home = TempDir::new().unwrap(); // no ~/.omp/agent, no omp on PATH
-    let out = omp_cmd(&home, &["--yes"]).success().get_output().clone();
-    assert!(String::from_utf8_lossy(&out.stdout).contains("omp: skipped"));
+    let out = omp_cmd(&home, &["--yes"]).failure().get_output().clone();
+    assert!(String::from_utf8_lossy(&out.stderr).contains("omp: skipped (binary/agent dir not found)"));
     assert!(!home.path().join(".omp").exists());
 }
 
@@ -2404,4 +2407,79 @@ fn bare_check_includes_a_path_less_omp_whose_bridge_is_installed() {
     assert!(stdout.contains("omp:"), "{stdout}");
     assert!(stdout.contains("warn omp binary: not found on PATH"), "{stdout}");
     assert!(stdout.contains("ok extension"), "{stdout}");
+}
+
+// ── named vs bare: an unwired NAMED target fails; bare `setup` skips quietly ──
+
+/// A machine with no agents and no Zellij config: every agent env var points
+/// into `home` (or is scrubbed) and PATH is empty, so no host install leaks in.
+fn agentless_setup(home: &TempDir, args: &[&str]) -> assert_cmd::assert::Assert {
+    let empty_path = TempDir::new().unwrap();
+    Command::cargo_bin("zj-radar")
+        .unwrap()
+        .arg("setup")
+        .args(args)
+        .env("HOME", home.path())
+        .env("XDG_CONFIG_HOME", home.path().join(".config"))
+        .env("ZELLIJ_CONFIG_DIR", home.path().join("zellij"))
+        .env("PATH", empty_path.path())
+        .env_remove("CODEX_HOME")
+        .env_remove("CLAUDE_CONFIG_DIR")
+        .env_remove("PI_CODING_AGENT_DIR")
+        .env_remove("PI_CONFIG_DIR")
+        .env_remove("OMP_PROFILE")
+        .env_remove("PI_PROFILE")
+        .write_stdin("")
+        .assert()
+}
+
+#[test]
+fn named_agent_targets_that_find_no_agent_fail_with_the_reason() {
+    for (target, reason) in [
+        ("codex", "codex: skipped (binary/config not found)"),
+        ("opencode", "opencode: skipped (binary/config not found)"),
+        ("claude", "claude: skipped (binary not found)"),
+        ("pi", "pi: skipped (binary/agent dir not found)"),
+        ("omp", "omp: skipped (binary/agent dir not found)"),
+    ] {
+        let home = TempDir::new().unwrap();
+        let out = agentless_setup(&home, &[target, "--yes"]).failure().get_output().clone();
+        let stderr = String::from_utf8_lossy(&out.stderr);
+        assert!(stderr.contains(reason), "`setup {target}`; stderr:\n{stderr}");
+    }
+}
+
+#[test]
+fn bare_setup_skips_absent_agents_quietly_and_points_at_setup_zellij() {
+    let home = TempDir::new().unwrap();
+    let out = agentless_setup(&home, &["--yes"]).success().get_output().clone();
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    for agent in ["codex", "claude", "opencode", "pi", "omp"] {
+        assert!(stdout.contains(&format!("{agent}: skipped")), "bare setup skips {agent}; stdout:\n{stdout}");
+    }
+    assert!(
+        stdout.contains("run `zj-radar setup zellij --download` next"),
+        "no radar alias yet → name the sidebar step; stdout:\n{stdout}"
+    );
+}
+
+#[test]
+fn bare_setup_omits_the_zellij_hint_once_the_alias_is_in_config() {
+    let home = TempDir::new().unwrap();
+    let zellij = home.path().join("zellij");
+    fs::create_dir_all(&zellij).unwrap();
+    fs::write(zellij.join("config.kdl"), "plugins {\n    radar location=\"file:/x/zj_radar.wasm\"\n}\n").unwrap();
+    let out = agentless_setup(&home, &["--yes"]).success().get_output().clone();
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("pi: skipped"), "positive control — the bare sweep ran; stdout:\n{stdout}");
+    assert!(!stdout.contains("setup zellij"), "the sidebar is set up; stdout:\n{stdout}");
+}
+
+#[test]
+fn named_bridge_target_without_tty_or_yes_fails_and_writes_nothing() {
+    let (home, ext) = isolated_pi_home();
+    let out = pi_cmd(&home, &[]).failure().get_output().clone();
+    assert!(!ext.exists(), "nobody confirmed — nothing written");
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(stderr.contains("pi: skipped (no tty to confirm — re-run with -y)"), "stderr:\n{stderr}");
 }
