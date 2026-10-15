@@ -11,6 +11,7 @@
 
 mod claude;
 mod codex;
+mod omp;
 mod opencode;
 mod pi;
 #[cfg(test)]
@@ -61,13 +62,14 @@ pub enum Agent {
     Codex,
     Opencode,
     Pi,
+    Omp,
 }
 
 impl Agent {
     /// Every push-reporter agent, in declaration order. Lets the coherence
     /// guards iterate the variants without re-typing the list (mirrors
     /// `Kind::ALL`).
-    pub const ALL: &'static [Agent] = &[Agent::Claude, Agent::Codex, Agent::Opencode, Agent::Pi];
+    pub const ALL: &'static [Agent] = &[Agent::Claude, Agent::Codex, Agent::Opencode, Agent::Pi, Agent::Omp];
 
     /// Parse the `notify <agent>` CLI argument. Inverse of [`Agent::source`].
     pub fn from_cli(s: &str) -> Option<Agent> {
@@ -82,6 +84,7 @@ impl Agent {
             Agent::Codex => "codex",
             Agent::Opencode => "opencode",
             Agent::Pi => "pi",
+            Agent::Omp => "omp",
         }
     }
 
@@ -92,6 +95,7 @@ impl Agent {
             Agent::Codex => codex::derive(intake),
             Agent::Opencode => opencode::derive(intake),
             Agent::Pi => pi::derive(intake),
+            Agent::Omp => omp::derive(intake),
         }
     }
 }
@@ -544,6 +548,7 @@ mod tests {
                 Agent::Codex => Kind::Codex,
                 Agent::Opencode => Kind::Opencode,
                 Agent::Pi => Kind::Pi,
+                Agent::Omp => Kind::Omp,
             };
             assert_eq!(
                 Kind::from_source(agent.source()),
@@ -591,10 +596,10 @@ mod tests {
     fn all_lists_every_variant() {
         for &a in Agent::ALL {
             match a {
-                Agent::Claude | Agent::Codex | Agent::Opencode | Agent::Pi => {}
+                Agent::Claude | Agent::Codex | Agent::Opencode | Agent::Pi | Agent::Omp => {}
             }
         }
-        assert_eq!(Agent::ALL.len(), 4, "a variant is missing from Agent::ALL");
+        assert_eq!(Agent::ALL.len(), 5, "a variant is missing from Agent::ALL");
     }
 
     /// The clap doc-comment on the `agent` arg (lib.rs) cannot be dynamic. This

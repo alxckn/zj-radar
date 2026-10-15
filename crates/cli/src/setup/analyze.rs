@@ -4,7 +4,7 @@ use crate::agents::Agent;
 use crate::producers::ProducerTexts;
 use crate::setup::detect::{
     codex_hook_handler_is_ours, has_unmanaged_radar_alias, is_unmanaged_radar_alias_line, notify_is_ours,
-    opencode_plugin_is_ours, pi_extension_is_ours, strip_managed_zellij_alias,
+    omp_extension_is_ours, opencode_plugin_is_ours, pi_extension_is_ours, strip_managed_zellij_alias,
 };
 
 use std::path::{Path, PathBuf};
@@ -338,6 +338,30 @@ pub(crate) fn analyze_pi(env: &PiEnv) -> PiFacts {
         zj_radar_on_path: env.zj_radar_on_path,
         extension_is_ours: env.extension_text.as_deref().map(pi_extension_is_ours),
         pi_version: env.pi_version.as_deref().and_then(parse_semver),
+    }
+}
+
+pub(crate) struct OmpEnv {
+    pub omp_on_path: bool,
+    pub zj_radar_on_path: bool,
+    pub extension_text: Option<String>,
+}
+
+/// omp's doctor facts. No version floor: the bridge degrades on an older omp
+/// (no subagent identity → all sessions read as main; no approval events →
+/// approvals don't surface) rather than breaking.
+pub(crate) struct OmpFacts {
+    pub omp_on_path: bool,
+    pub zj_radar_on_path: bool,
+    /// `None` = absent; `Some(true)` = ours; `Some(false)` = foreign.
+    pub extension_is_ours: Option<bool>,
+}
+
+pub(crate) fn analyze_omp(env: &OmpEnv) -> OmpFacts {
+    OmpFacts {
+        omp_on_path: env.omp_on_path,
+        zj_radar_on_path: env.zj_radar_on_path,
+        extension_is_ours: env.extension_text.as_deref().map(omp_extension_is_ours),
     }
 }
 

@@ -276,6 +276,38 @@ pub(crate) fn check_pi() -> bool {
     print_check_items(&items)
 }
 
+/// Returns true when any item is `Missing` — see [`check_codex`].
+pub(crate) fn check_omp() -> bool {
+    let env =
+        OmpEnv { omp_on_path: which("omp"), zj_radar_on_path: which("zj-radar"), extension_text: omp_extension_text() };
+    let items = omp_check_items(&analyze_omp(&env));
+    println!("omp:");
+    print_check_items(&items)
+}
+
+pub(crate) fn omp_check_items(f: &OmpFacts) -> Vec<CheckItem> {
+    vec![
+        agent_binary_item("omp binary", f.omp_on_path, f.extension_is_ours == Some(true), "the bridge is installed"),
+        if f.zj_radar_on_path {
+            CheckItem::ok("zj-radar binary", "found on PATH")
+        } else {
+            CheckItem::missing("zj-radar binary", "not found on PATH")
+        },
+        match f.extension_is_ours {
+            // `omp` is in `AGENT_NAMES`: without the bridge its pane is dark.
+            None => CheckItem::missing(
+                "extension",
+                "zj-radar bridge extension not installed — omp panes stay dark until it is; run `zj-radar setup omp` and restart omp",
+            ),
+            Some(true) => CheckItem::ok("extension", "zj-radar bridge extension installed"),
+            Some(false) => CheckItem::warn(
+                "extension",
+                "zj-radar-omp.js present but not ours (no marker) — re-run `zj-radar setup omp --force` to replace it",
+            ),
+        },
+    ]
+}
+
 /// The agent-binary item for an instrumented agent. Missing from PATH is
 /// only `Missing` when our wiring (bridge, hooks, notify slot) isn't installed
 /// either: `setup` accepts a PATH-less (bun/Nix-run) agent, so with our wiring
@@ -989,6 +1021,19 @@ mod tests {
         assert!(!pi(Some(PI_EXTENSION_JS)).iter().any(|i| i.level == CheckLevel::Missing));
         assert_eq!(pi(None)[0].level, CheckLevel::Missing, "no binary AND no bridge is still Missing");
         assert_eq!(pi(Some("// theirs\n"))[0].level, CheckLevel::Missing, "a foreign file isn't our install");
+
+        let omp = |ext: Option<&str>| {
+            omp_check_items(&analyze_omp(&OmpEnv {
+                omp_on_path: false,
+                zj_radar_on_path: true,
+                extension_text: ext.map(str::to_string),
+            }))
+        };
+        assert_eq!(omp(Some(OMP_EXTENSION_JS))[0].level, CheckLevel::Warn);
+        assert!(!omp(Some(OMP_EXTENSION_JS)).iter().any(|i| i.level == CheckLevel::Missing));
+        assert_eq!(omp(None)[0].level, CheckLevel::Missing, "no binary AND no bridge is still Missing");
+        assert_eq!(omp(Some(PI_EXTENSION_JS))[0].level, CheckLevel::Missing, "pi's bridge isn't omp's install");
+        assert_eq!(omp(Some(PI_EXTENSION_JS))[2].level, CheckLevel::Warn, "pi's bridge under our name is foreign");
 
         let oc = |plugin: Option<&str>, tui: Option<&str>| {
             opencode_check_items(&analyze_opencode(&OpencodeEnv {

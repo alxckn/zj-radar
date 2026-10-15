@@ -175,6 +175,40 @@ project-local `.pi/extensions/zj-radar.js` copy would double-report — keep the
 bridge global. `npx pi` / `pnpm dlx pi` launches are not recognized as pi (the
 launcher is the pane's command).
 
+## omp
+
+```sh
+zj-radar setup omp
+zj-radar setup omp --check
+```
+
+omp ([oh-my-pi](https://github.com/can1357/oh-my-pi)) is a fork of pi with its
+own extension runtime. This vendors a bridge extension to
+`~/.omp/agent/extensions/zj-radar-omp.js`, following omp's own agent-dir
+rules: a named profile (`$OMP_PROFILE`, else `$PI_PROFILE`) uses
+`~/.omp/profiles/<name>/agent/`, `$PI_CONFIG_DIR` replaces `.omp`, and
+`$PI_CODING_AGENT_DIR` overrides the default profile's dir. Run `setup omp`
+with the same environment you launch omp with. omp auto-loads the file;
+restart omp.
+
+| omp event | rail |
+|---|---|
+| `agent_start` (after `input`) | running, task label from the prompt (slash commands are not tasks) |
+| `input` while a run is streaming (steer) | running, task label |
+| `tool_execution_start` | running, tool activity |
+| `ask` tool start / end | pending (its first question) / back to running |
+| `tool_approval_requested` / `_resolved` | pending (`Allow <tool>?`) / back to running |
+| `agent_end` | done (trailing question → pending), error when the last assistant message errored, done with no message on Esc; ignored while omp will continue (auto-retry, a background job) |
+| `session_switch{new}` / `session_shutdown` | idle |
+
+omp binds every extension into each subagent session too; the bridge reports
+only the main session, except that a subagent's `ask` or tool approval shown
+in your TUI still surfaces as "needs you" (it blocks you all the same). Like pi's, the bridge
+reports only in the interactive TUI under Zellij, and `omp --no-extensions`
+disables it. omp honors `$PI_CODING_AGENT_DIR`, so pi and omp can share one
+extensions dir: the two bridges have different file names, and each stays
+silent inside the other agent's process.
+
 ## Any script: `zj-radar notify generic`
 
 Deploy scripts, cron jobs, and homegrown loops can put a row on the radar
@@ -192,7 +226,7 @@ zj-radar notify generic --status done --msg "deploy finished" --source deploy
 - `--task`: the sticky task label. Empty keeps the stored one.
 - `--source`: the kind mark. `test` ⚗ · `build` ⚙ · `deploy` ⇡ · `server` ❯ ·
   `remote` ⇄ · `command` `$`, or an agent token (`claude` ✳ · `codex` ❉ ·
-  `opencode` ✺ · `pi` ✴ · `gemini` ✦). `server` and `remote` rows hold a steady `▸`
+  `opencode` ✺ · `pi` ✴ · `omp` ✷ · `gemini` ✦). `server` and `remote` rows hold a steady `▸`
   instead of spinning; a `remote` completion notifies as a disconnect.
   Anything else, including the default `generic`, renders `⦿`.
 - Repo and branch come from `git` in the calling directory; the pane id from

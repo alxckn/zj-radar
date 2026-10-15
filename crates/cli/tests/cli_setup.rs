@@ -377,6 +377,9 @@ fn bare_check(home: &TempDir, path: &std::ffi::OsStr) -> std::process::Output {
         .env_remove("CLAUDE_CONFIG_DIR")
         .env_remove("XDG_CONFIG_HOME")
         .env_remove("PI_CODING_AGENT_DIR")
+        .env_remove("PI_CONFIG_DIR")
+        .env_remove("OMP_PROFILE")
+        .env_remove("PI_PROFILE")
         .env_remove("ZELLIJ_CONFIG_FILE")
         .output()
         .unwrap()
@@ -396,7 +399,7 @@ fn check_exit_code_gates_and_bare_check_covers_zellij_and_detected_codex() {
 
 #[test]
 fn bare_check_skips_agents_that_are_not_present() {
-    // No codex/claude/opencode/pi binary, config, or bridge: the bare doctor
+    // No codex/claude/opencode/pi/omp binary, config, or bridge: the bare doctor
     // (which `update` also runs) must not fail the machine over agents it
     // doesn't have. The exit code still reflects the (empty) zellij half.
     let home = TempDir::new().unwrap();
@@ -404,7 +407,7 @@ fn bare_check_skips_agents_that_are_not_present() {
     let output = bare_check(&home, empty_path.path().as_os_str());
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("zellij:"), "{stdout}");
-    for agent in ["codex:", "claude:", "opencode:", "pi:"] {
+    for agent in ["codex:", "claude:", "opencode:", "pi:", "omp:"] {
         assert!(!stdout.contains(agent), "absent agent reported ({agent}); got:\n{stdout}");
     }
     assert!(!stdout.contains("missing codex binary"), "{stdout}");
@@ -2283,4 +2286,122 @@ fn setup_zellij_refreshes_the_wasm_beside_a_symlinked_config() {
     assert_eq!(fs::read(&store).unwrap(), b"\0asm-STORE");
     assert!(fs::symlink_metadata(&dest).unwrap().file_type().is_symlink());
     assert!(String::from_utf8_lossy(&out.stderr).contains("wasm at"), "should name the skipped wasm");
+}
+
+// ── omp: the vendored bridge extension under <omp agent dir>/extensions ──
+//
+// `omp_installed()` accepts an existing agent dir, so an empty
+// `<home>/.omp/agent/` stands in for the binary.
+
+const OMP_MARKER: &str = "ZJ_RADAR_OMP_EXTENSION=v1";
+
+fn isolated_omp_home() -> (TempDir, std::path::PathBuf) {
+    let home = TempDir::new().unwrap();
+    fs::create_dir_all(home.path().join(".omp/agent")).unwrap();
+    let ext = home.path().join(".omp/agent/extensions/zj-radar-omp.js");
+    (home, ext)
+}
+
+fn omp_command(home: &TempDir, args: &[&str]) -> Command {
+    let empty_path = TempDir::new().unwrap();
+    let mut cmd = Command::cargo_bin("zj-radar").unwrap();
+    cmd.args(["setup", "omp"])
+        .args(args)
+        .env("HOME", home.path())
+        .env_remove("PI_CODING_AGENT_DIR")
+        .env_remove("PI_CONFIG_DIR")
+        .env_remove("OMP_PROFILE")
+        .env_remove("PI_PROFILE")
+        .env("PATH", empty_path.path());
+    cmd
+}
+
+fn omp_cmd(home: &TempDir, args: &[&str]) -> assert_cmd::assert::Assert {
+    omp_command(home, args).assert()
+}
+
+#[test]
+fn setup_omp_installs_the_marked_extension_and_is_idempotent() {
+    let (home, ext) = isolated_omp_home();
+    let out = omp_cmd(&home, &["--yes"]).success().get_output().clone();
+    let first = fs::read_to_string(&ext).unwrap();
+    assert!(first.lines().next().unwrap().contains(OMP_MARKER), "{first:?}");
+    assert!(String::from_utf8_lossy(&out.stdout).contains("omp: restart omp for the bridge to take effect."));
+
+    let out = omp_cmd(&home, &["--yes"]).success().get_output().clone();
+    assert_eq!(fs::read_to_string(&ext).unwrap(), first, "second run must be a no-op");
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("already up to date"), "stdout:\n{stdout}");
+    assert!(!stdout.contains("restart omp"), "nothing written, so no restart hint:\n{stdout}");
+}
+
+#[test]
+fn setup_omp_follows_the_active_profile() {
+    let (home, default_ext) = isolated_omp_home();
+    fs::create_dir_all(home.path().join(".omp/profiles/work/agent")).unwrap();
+    omp_command(&home, &["--yes"]).env("OMP_PROFILE", "work").assert().success();
+    assert!(home.path().join(".omp/profiles/work/agent/extensions/zj-radar-omp.js").exists());
+    assert!(!default_ext.exists(), "a named profile has its own extensions dir");
+}
+
+#[test]
+fn setup_omp_and_pi_coexist_in_a_shared_agent_dir() {
+    // omp honors $PI_CODING_AGENT_DIR too: one dir, two bridges, no clobber.
+    let home = TempDir::new().unwrap();
+    let shared = home.path().join("shared-agent");
+    fs::create_dir_all(&shared).unwrap();
+    omp_command(&home, &["--yes"]).env("PI_CODING_AGENT_DIR", &shared).assert().success();
+    let empty_path = TempDir::new().unwrap();
+    Command::cargo_bin("zj-radar")
+        .unwrap()
+        .args(["setup", "pi", "--yes"])
+        .env("HOME", home.path())
+        .env("PI_CODING_AGENT_DIR", &shared)
+        .env("PATH", empty_path.path())
+        .assert()
+        .success();
+    let omp = fs::read_to_string(shared.join("extensions/zj-radar-omp.js")).unwrap();
+    let pi = fs::read_to_string(shared.join("extensions/zj-radar.js")).unwrap();
+    assert!(omp.contains(OMP_MARKER) && pi.contains(PI_MARKER));
+
+    omp_command(&home, &["--uninstall", "--yes"]).env("PI_CODING_AGENT_DIR", &shared).assert().success();
+    assert!(!shared.join("extensions/zj-radar-omp.js").exists());
+    assert!(shared.join("extensions/zj-radar.js").exists(), "omp's uninstall never touches pi's bridge");
+}
+
+#[test]
+fn setup_omp_skips_when_omp_is_absent() {
+    let home = TempDir::new().unwrap(); // no ~/.omp/agent, no omp on PATH
+    let out = omp_cmd(&home, &["--yes"]).success().get_output().clone();
+    assert!(String::from_utf8_lossy(&out.stdout).contains("omp: skipped"));
+    assert!(!home.path().join(".omp").exists());
+}
+
+#[test]
+fn setup_omp_refuses_a_foreign_file_and_uninstall_removes_only_ours() {
+    let (home, ext) = isolated_omp_home();
+    fs::create_dir_all(ext.parent().unwrap()).unwrap();
+    fs::write(&ext, "export default function (pi) {}\n").unwrap();
+    omp_cmd(&home, &["--yes"]).failure();
+    assert!(!fs::read_to_string(&ext).unwrap().contains(OMP_MARKER), "refused: file untouched");
+    omp_cmd(&home, &["--uninstall", "--yes"]).success();
+    assert!(ext.exists(), "a foreign file is never removed");
+
+    omp_cmd(&home, &["--yes", "--force"]).success();
+    assert!(fs::read_to_string(&ext).unwrap().contains(OMP_MARKER));
+    omp_cmd(&home, &["--uninstall", "--yes"]).success();
+    assert!(!ext.exists());
+    assert!(ext.with_file_name("zj-radar-omp.js.zj-radar.bak").exists(), "the foreign backup survives");
+}
+
+#[test]
+fn bare_check_includes_a_path_less_omp_whose_bridge_is_installed() {
+    let (home, _ext) = isolated_omp_home();
+    omp_cmd(&home, &["--yes"]).success();
+    let empty_path = TempDir::new().unwrap();
+    let output = bare_check(&home, empty_path.path().as_os_str());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("omp:"), "{stdout}");
+    assert!(stdout.contains("warn omp binary: not found on PATH"), "{stdout}");
+    assert!(stdout.contains("ok extension"), "{stdout}");
 }

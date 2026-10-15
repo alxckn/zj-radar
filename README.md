@@ -19,6 +19,7 @@ jump to that tab.
   <img alt="Codex" src="https://img.shields.io/badge/Codex-supported-black">
   <img alt="Opencode" src="https://img.shields.io/badge/Opencode-supported-4B8BBE">
   <img alt="pi" src="https://img.shields.io/badge/pi-supported-6E56CF">
+  <img alt="omp" src="https://img.shields.io/badge/omp-supported-6E56CF">
 </p>
 
 <p align="center">
@@ -65,6 +66,7 @@ zj-radar setup claude    # Claude Code plugin, via its marketplace
 zj-radar setup codex     # Codex hooks; then run `/hooks` inside Codex to trust them
 zj-radar setup opencode  # Opencode bridge plugin; then restart opencode
 zj-radar setup pi        # pi bridge extension; then restart pi or run /reload
+zj-radar setup omp       # omp (oh-my-pi) bridge extension; then restart omp
 ```
 
 Want to look before you commit? `zj-radar run` starts a throwaway session with

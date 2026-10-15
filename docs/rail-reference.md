@@ -44,7 +44,7 @@
 **Status glyphs (plain):** `○` idle · `⠋` working *(spins ⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏; a running
 **server** or a connected **remote** session holds a steady `▸` instead —
 neither spins)* · `◆` needs-you · `●` done · `✗` error.
-**Kind marks:** `✳` claude · `❉` codex · `✺` opencode · `✴` pi · `✦` gemini · `$` command · `⚙` build ·
+**Kind marks:** `✳` claude · `❉` codex · `✺` opencode · `✴` pi · `✷` omp · `✦` gemini · `$` command · `⚙` build ·
 `⚗` test · `⇡` deploy · `❯` server · `⇄` remote · `⦿` other.
 
 **Width ruler (32):**

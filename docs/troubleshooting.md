@@ -76,6 +76,19 @@ command.
 Launch the installed `pi` binary rather than a package runner. Details in
 [producers](producers.md#pi).
 
+## An omp pane shows no status
+
+**Symptom:** omp works in a pane, but its row never appears.
+
+**Why:** same rules as pi: the bridge reports only from omp's interactive TUI
+under Zellij, and omp loads extensions at startup. omp also reads its
+extensions from the *active profile's* agent dir, so a bridge installed while
+`$OMP_PROFILE` (or `$PI_CONFIG_DIR` / `$PI_CODING_AGENT_DIR`) differed from
+your launch environment sits where omp never looks.
+
+**Fix:** run `zj-radar setup omp --check` in the environment you launch omp
+from, then restart omp. Details in [producers](producers.md#omp).
+
 ## No background-task lines under a Claude pane
 
 **Symptom:** Claude backgrounds a test run or a subagent, and the pane shows
