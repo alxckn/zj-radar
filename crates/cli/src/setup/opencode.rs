@@ -8,8 +8,8 @@
 
 use super::detect::opencode_plugin_is_ours;
 use super::vendored::{
-    dry_run_backup_line, kept_backup_line, plan_install, plan_uninstall, read_existing, remove_backup_if_ours,
-    write_bridge, Existing, InstallPlan, UninstallPlan,
+    dry_run_backup_line, kept_backup_line, plan_install, plan_uninstall, read_existing, refuse_if_managed,
+    remove_backup_if_ours, write_bridge, Existing, InstallPlan, UninstallPlan,
 };
 use super::*;
 
@@ -161,6 +161,12 @@ pub(crate) fn setup_opencode(uninstall: bool, opts: BridgeSetupOpts) {
         print_opencode_guidance(&facts, false);
         return;
     }
+    // Refuse as a unit here too: half a managed pair rewritten is no better
+    // than half a foreign one.
+    let managed: Vec<bool> = to_write.iter().map(|b| refuse_if_managed("opencode", &b.path, false)).collect();
+    if managed.contains(&true) {
+        return;
+    }
     if opts.dry_run {
         for b in &to_write {
             println!("--- {} (dry-run) ---\n{}", b.path.display(), b.embedded);
@@ -193,6 +199,7 @@ fn uninstall_opencode(bridges: &[Bridge], opts: &BridgeSetupOpts) {
             UninstallPlan::NotOurs => {
                 println!("opencode: plugin not ours (marker absent) — leaving {}", b.path.display());
             }
+            UninstallPlan::Remove if refuse_if_managed("opencode", &b.path, true) => {}
             UninstallPlan::Remove => to_remove.push(b),
         }
     }

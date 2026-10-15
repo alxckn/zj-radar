@@ -343,6 +343,10 @@ zjRadarWasm = pkgs.fetchurl {
 };
 ```
 
+`setup` treats a symlinked `config.kdl`, layout, wasm, or vendored
+opencode/pi/omp bridge file as yours to manage: it warns and leaves the file
+alone rather than replace or remove the link.
+
 ## Files zj-radar creates (and how to remove them)
 
 Paths are the defaults; `ZELLIJ_CONFIG_DIR` / `XDG_CONFIG_HOME` move the

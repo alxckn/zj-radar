@@ -2483,3 +2483,54 @@ fn named_bridge_target_without_tty_or_yes_fails_and_writes_nothing() {
     let stderr = String::from_utf8_lossy(&out.stderr);
     assert!(stderr.contains("pi: skipped (no tty to confirm — re-run with -y)"), "stderr:\n{stderr}");
 }
+
+// ── a symlinked bridge is Nix / home-manager's: never replaced or removed ──
+
+/// Plant `link` as a symlink to a real file holding `text` (outside the
+/// extensions dir, as a Nix store path would be); returns that target.
+#[cfg(unix)]
+fn symlink_bridge(home: &TempDir, link: &std::path::Path, text: &str) -> std::path::PathBuf {
+    let target = home.path().join("store-bridge.js");
+    fs::write(&target, text).unwrap();
+    fs::create_dir_all(link.parent().unwrap()).unwrap();
+    std::os::unix::fs::symlink(&target, link).unwrap();
+    target
+}
+
+#[cfg(unix)]
+fn is_symlink(path: &std::path::Path) -> bool {
+    fs::symlink_metadata(path).is_ok_and(|m| m.file_type().is_symlink())
+}
+
+#[cfg(unix)]
+#[test]
+fn setup_pi_leaves_a_symlinked_stale_bridge_alone() {
+    let (home, ext) = isolated_pi_home();
+    let stale = format!("// {PI_MARKER}\n// an older release\n");
+    let target = symlink_bridge(&home, &ext, &stale);
+
+    let out = pi_cmd(&home, &["--yes"]).success().get_output().clone();
+    assert!(is_symlink(&ext), "the link must survive (the atomic rename would replace it)");
+    assert_eq!(fs::read_to_string(&target).unwrap(), stale, "the managed target is untouched");
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(stderr.contains("managed by Nix / home-manager"), "stderr:\n{stderr}");
+
+    let out = pi_cmd(&home, &["--uninstall", "--yes"]).success().get_output().clone();
+    assert!(is_symlink(&ext), "uninstall leaves a managed link too");
+    assert!(String::from_utf8_lossy(&out.stderr).contains("will not remove"));
+}
+
+#[cfg(unix)]
+#[test]
+fn setup_opencode_writes_neither_bridge_when_one_is_a_symlink() {
+    let (xdg, plugin) = isolated_opencode_xdg();
+    let tui = opencode_tui_plugin(&xdg);
+    let stale = format!("// {OPENCODE_MARKER}\n// an older release\n");
+    let target = symlink_bridge(&xdg, &plugin, &stale);
+
+    let out = opencode_cmd(&xdg, &["--yes"]).success().get_output().clone();
+    assert!(is_symlink(&plugin), "the link must survive");
+    assert_eq!(fs::read_to_string(&target).unwrap(), stale);
+    assert!(!tui.exists(), "refused as a unit — no half-installed pair");
+    assert!(String::from_utf8_lossy(&out.stderr).contains("managed by Nix / home-manager"));
+}
