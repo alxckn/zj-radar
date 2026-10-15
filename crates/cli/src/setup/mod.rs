@@ -188,7 +188,7 @@ pub(crate) struct CodexSetupOpts {
     is_tty: bool,
 }
 
-/// Options for the vendored-bridge targets (opencode, pi): both are "drop a
+/// Options for the vendored-bridge targets (opencode, pi, omp): all are "drop a
 /// marked file into the agent's auto-loaded dir", so they take the same knobs.
 pub(crate) struct BridgeSetupOpts {
     pub force: bool,

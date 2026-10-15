@@ -197,7 +197,6 @@ function lastAssistant(messages) {
   return null;
 }
 
-// The first question of an `ask` tool call — what the user is looking at.
 // omp rebinds every extension factory into each subagent session; its
 // handlers see `ctx.agent.kind === "sub"` there. An omp without the field
 // predates subagent identity: treat it as the main session.
@@ -205,6 +204,7 @@ function isMain(ctx) {
   return !(ctx.agent && ctx.agent.kind === "sub");
 }
 
+// The first question of an `ask` tool call — what the user is looking at.
 function askTitle(args) {
   const qs = args && Array.isArray(args.questions) ? args.questions : [];
   const q = qs.find((x) => x && typeof x.question === "string" && x.question.trim());

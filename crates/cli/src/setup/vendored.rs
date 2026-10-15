@@ -1,6 +1,6 @@
 //! One vendored bridge file's install/uninstall decision — shared by every
 //! producer whose wiring is "drop a marked file into the agent's auto-loaded
-//! dir" (opencode, pi). Pure; the caller supplies the ownership test.
+//! dir" (opencode, pi, omp). Pure; the caller supplies the ownership test.
 
 /// What `setup <agent>` found at a bridge path. Three-state on purpose:
 /// `Absent` must never collapse into `Text("")` — the foreign-file refusal

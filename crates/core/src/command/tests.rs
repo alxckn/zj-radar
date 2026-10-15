@@ -733,7 +733,7 @@ fn agent_foreground_commands_are_not_tracked() {
 #[test]
 fn gemini_foreground_command_is_tracked() {
     // Gemini has no push adapter (the shipped scope is Claude, Codex,
-    // Opencode, and pi), so unlike them it is *observed* via command-tracking
+    // Opencode, pi, and omp), so unlike them it is *observed* via command-tracking
     // rather than suppressed — otherwise its panes would show nothing at
     // all. It carries its own `Kind::Gemini` source so it renders with the
     // gemini mark.

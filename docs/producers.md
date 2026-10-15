@@ -1,8 +1,8 @@
 # Producers: sending agent status to the sidebar
 
 The sidebar only displays. A **producer** is whatever broadcasts agent status
-to it. zj-radar ships producers for Claude Code, Codex, Opencode, and pi, a
-`notify generic` command for any script, and documents the wire format so you
+to it. zj-radar ships producers for Claude Code, Codex, Opencode, pi, and omp
+(oh-my-pi), a `notify generic` command for any script, and documents the wire format so you
 can write your own.
 
 Install the [sidebar](install.md) first. Every producer below needs the
@@ -412,7 +412,7 @@ session that lost its writer may briefly read as stale but is never reaped.
 go-to-tab` is 1-based, so jump with `go-to-tab $((pos + 1))`. A pane's
 `status` is one of `running`, `pending`, `done`, `error`, `idle` (see
 [the activity model](activity-model.md)); `kind` is an agent (`claude`,
-`codex`, `opencode`, `pi`, `gemini`) or a command class (`test`, `build`,
+`codex`, `opencode`, `pi`, `omp`, `gemini`) or a command class (`test`, `build`,
 `deploy`, `server`, `remote`, `command`, `other`), the `Kind` axis in
 [the activity model](activity-model.md#2-the-three-orthogonal-axes).
 

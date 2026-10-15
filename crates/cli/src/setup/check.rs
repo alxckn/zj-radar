@@ -1007,7 +1007,7 @@ mod tests {
 
     #[test]
     fn bridge_agent_binary_off_path_is_a_warn_once_the_bridge_is_ours() {
-        // `setup pi|opencode` accept a PATH-less (bun/Nix) agent, so a working
+        // `setup pi|omp|opencode` accept a PATH-less (bun/Nix) agent, so a working
         // install without the binary on PATH must not fail `--check`.
         let pi = |ext: Option<&str>| {
             pi_check_items(&analyze_pi(&PiEnv {
