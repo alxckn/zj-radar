@@ -202,8 +202,8 @@ restart omp.
 | `session_switch{new}` / `session_shutdown` | idle |
 
 omp binds every extension into each subagent session too; the bridge reports
-only the main session, except that a subagent's `ask` or tool approval still
-surfaces as "needs you" (it blocks you all the same). Like pi's, the bridge
+only the main session, except that a subagent's `ask` or tool approval shown
+in your TUI still surfaces as "needs you" (it blocks you all the same). Like pi's, the bridge
 reports only in the interactive TUI under Zellij, and `omp --no-extensions`
 disables it. omp honors `$PI_CODING_AGENT_DIR`, so pi and omp can share one
 extensions dir: the two bridges have different file names, and each stays

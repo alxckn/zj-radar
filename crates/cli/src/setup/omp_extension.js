@@ -236,9 +236,11 @@ export default function (pi) {
     if (armed) emit(status, payload);
   };
   // A dialog blocks the user wherever it was raised, so subagents forward
-  // these too — but only once the main session armed the bridge.
+  // these too — but only once the main session armed the bridge, and only
+  // from a session with a UI: a UI-less subagent's approval auto-denies at
+  // once, and forwarding it would flash a false "needs you".
   const sendDialog = (ctx, status, payload) => {
-    if (isMain(ctx) ? armed : shared().armed) emit(status, payload);
+    if (isMain(ctx) ? armed : shared().armed && ctx.hasUI === true) emit(status, payload);
   };
   const dialogEnd = (ctx) => {
     const idle = typeof ctx.isIdle === "function" ? ctx.isIdle() : false;

@@ -232,7 +232,11 @@ test("tool approval is pending, resolved returns to running", async () => {
 });
 
 test("subagent sessions are silent except for dialogs, once main armed", async () => {
+  const headless = await loadRuntime(sub);
+  headless.ctx.mode = "print"; // omp's real subagent binding: no UI
+  headless.ctx.hasUI = false;
   const child = await loadRuntime(sub);
+  child.ctx.hasUI = true;
   child.emit("session_start");
   child.emit("tool_approval_requested", { toolName: "write" }); // main not armed yet
   await settle();
@@ -242,6 +246,9 @@ test("subagent sessions are silent except for dialogs, once main armed", async (
   main.emit("session_start");
   main.setIdle(false);
   main.emit("agent_start");
+  headless.emit("session_start");
+  headless.emit("tool_approval_requested", { toolName: "bash" }); // auto-denied: never surfaces
+  headless.emit("tool_approval_resolved", { toolName: "bash", approved: false });
   child.emit("agent_start");
   child.emit("tool_execution_start", { toolName: "read", args: { path: "/x" } });
   child.emit("tool_approval_requested", { toolName: "write" });
